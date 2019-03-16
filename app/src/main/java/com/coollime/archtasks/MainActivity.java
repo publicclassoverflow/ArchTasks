@@ -10,6 +10,11 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.view.View;
 
+import com.coollime.archtasks.database.AppDatabase;
+import com.coollime.archtasks.database.TaskEntry;
+
+import java.util.List;
+
 import static android.support.v7.widget.DividerItemDecoration.VERTICAL;
 
 
@@ -17,9 +22,10 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
 
     // Constant for logging
     private static final String TAG = MainActivity.class.getSimpleName();
-    // Member variables for the adapter and RecyclerView
+    // Member variables for the adapter, RecyclerView, and database
     private RecyclerView mRecyclerView;
     private TaskAdapter mAdapter;
+    private AppDatabase mDb;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,6 +77,40 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
                 // Create a new intent to start an AddTaskActivity
                 Intent addTaskIntent = new Intent(MainActivity.this, AddTaskActivity.class);
                 startActivity(addTaskIntent);
+            }
+        });
+
+        /*
+          Instantiate the database/get the reference to the available database object
+         */
+        mDb = AppDatabase.getInstance(getApplicationContext());
+    }
+
+    /**
+     * This method is called after this activity has been paused or restarted.
+     * Often, this is after new data has been inserted through an AddTaskActivity,
+     * so this re-queries the database data for any changes.
+     */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Get the diskIO Executor from the instance of AppExecutors and
+        // call the diskIO execute method with a new Runnable and implement its run method
+        AppExecutors.getInstance().diskIO().execute(new Runnable() {
+            @Override
+            public void run() {
+                // Get a list of all the tasks from the database
+                // It should be final such that it is visible in the run method
+                // TODO(MZ): Simplify this operation after introducing LiveData
+                final List<TaskEntry> tasks = mDb.taskDao().loadAllTasks();
+                // Update the adapter with another Runnable on the UI thread
+                // since we cannot update the UI on the disk IO executor thread
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mAdapter.setTasks(tasks);
+                    }
+                });
             }
         });
     }

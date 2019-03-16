@@ -115,11 +115,20 @@ public class AddTaskActivity extends AppCompatActivity {
         String description = mEditText.getText().toString();
         int priority = getPriorityFromViews();
         Date date = new Date();
+
         // Create a TaskEntry object using the above information
-        TaskEntry taskEntry = new TaskEntry(description, priority, date);
-        // Use the taskDao to insert the taskEntry into the table
-        mDb.taskDao().insertTask(taskEntry);
-        finish();
+        // It should be final in order to be visible for the Runnable
+        final TaskEntry taskEntry = new TaskEntry(description, priority, date);
+        // Get the diskIO Executor from the instance of AppExecutors and
+        // call the diskIO execute method with a new Runnable and implement its run method
+        AppExecutors.getInstance().diskIO().execute(new Runnable() {
+            @Override
+            public void run() {
+                // Use the taskDao to insert the taskEntry into the table
+                mDb.taskDao().insertTask(taskEntry);
+                finish();
+            }
+        });
     }
 
     /**
