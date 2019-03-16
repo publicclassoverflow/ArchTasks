@@ -18,6 +18,7 @@ package com.coollime.archtasks;
 
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -79,18 +80,20 @@ public class AddTaskActivity extends AppCompatActivity {
                 // Assign the value of EXTRA_TASK_ID in the intent to mTaskId
                 // Use DEFAULT_TASK_ID as the default
                 mTaskId = intent.getIntExtra(EXTRA_TASK_ID, DEFAULT_TASK_ID);
-                final LiveData<TaskEntry> task = mDb.taskDao().loadTaskById(mTaskId);
-                // Call the populateUI method with the retrieve tasks
-                // Because LiveData runs outside the main thread by default
-                // it can trigger the onChanged() method of the observer to notify the subject
-                // directly without any usages of things like executors
-                task.observe(this, new Observer<TaskEntry>() {
+                // The task loading process is done in the ViewModel such that any configuration
+                // changes will not re-query the database
+                // Create a ViewModel using the ViewModelFactory
+                AddTaskViewModelFactory factory = new AddTaskViewModelFactory(mDb, mTaskId);
+                final AddTaskViewModel viewModel = ViewModelProviders.of(this, factory)
+                                                               .get(AddTaskViewModel.class);
+                // Use the getTask() method in the ViewModel to get the specific TaskEntry object
+                viewModel.getTask().observe(this, new Observer<TaskEntry>() {
                     @Override
                     public void onChanged(@Nullable TaskEntry taskEntry) {
                         // There is no need to get updates when adding tasks
                         // So, we can safely remove the observer before populating the UI
-                        task.removeObserver(this);
-                        Log.d(TAG, "Receiving database update from LiveData");
+                        viewModel.getTask().removeObserver(this);
+                        Log.d(TAG, "Receiving database update from LiveData: " + taskEntry.getDescription());
                         populateUI(taskEntry);
                     }
                 });
