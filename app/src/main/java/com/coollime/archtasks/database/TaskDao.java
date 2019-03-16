@@ -1,5 +1,6 @@
 package com.coollime.archtasks.database;
 
+import android.arch.lifecycle.LiveData;
 import android.arch.persistence.room.Dao;
 import android.arch.persistence.room.Delete;
 import android.arch.persistence.room.Insert;
@@ -12,8 +13,12 @@ import java.util.List;
 @Dao
 public interface TaskDao {
 
+    /**
+     * This method is wrapped with LiveData such that every time there are changes in the database,
+     * it is called to load all saved tasks in the database
+     */
     @Query("SELECT * FROM task ORDER BY priority")
-    List<TaskEntry> loadAllTasks();
+    LiveData<List<TaskEntry>> loadAllTasks();
 
     @Insert
     void insertTask(TaskEntry taskEntry);
@@ -25,5 +30,5 @@ public interface TaskDao {
     void deleteTask(TaskEntry taskEntry);
 
     @Query("SELECT * FROM task WHERE id = :id")
-    TaskEntry loadTaskById(int id);
+    LiveData<TaskEntry> loadTaskById(int id);
 }

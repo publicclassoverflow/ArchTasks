@@ -1,13 +1,17 @@
 package com.coollime.archtasks;
 
+import android.arch.lifecycle.LiveData;
+import android.arch.lifecycle.Observer;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.util.Log;
 import android.view.View;
 
 import com.coollime.archtasks.database.AppDatabase;
@@ -71,8 +75,9 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
                         int position = viewHolder.getAdapterPosition();
                         List<TaskEntry> tasks = mAdapter.getTasks();
                         mDb.taskDao().deleteTask(tasks.get(position));
-                        // Retrieve the updated tasks
-                        retrieveTasks();
+                        // LiveData has the ability to trigger the onChanged() method of the
+                        // observer whenever there are changes in the database
+                        // Therefore, there is no need to call the method to retrieve tasks
                     }
                 });
             }
@@ -88,7 +93,7 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
         fabButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                // Create a new intent to start an AddTaskActivity
+                // Create a new intent to start an dAddTaskActivity
                 Intent addTaskIntent = new Intent(MainActivity.this, AddTaskActivity.class);
                 startActivity(addTaskIntent);
             }
@@ -98,37 +103,25 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
           Instantiate the database/get the reference to the available database object
          */
         mDb = AppDatabase.getInstance(getApplicationContext());
-    }
 
-    /**
-     * This method is called after this activity has been paused or restarted.
-     * Often, this is after new data has been inserted through an AddTaskActivity,
-     * so this re-queries the database data for any changes.
-     */
-    @Override
-    protected void onResume() {
-        super.onResume();
+        // Since LiveData is being used, there is no need to re-query the database in onResume()
         retrieveTasks();
     }
 
+    /**
+     * Get a list of all the tasks from the database
+     * LiveData runs outside of the main thread by default, so we can query directly
+     * The adapter gets updated by the TaskEntry object when changes in the database are observed
+     */
     private void retrieveTasks() {
-        // Get the diskIO Executor from the instance of AppExecutors and
-        // call the diskIO execute method with a new Runnable and implement its run method
-        AppExecutors.getInstance().diskIO().execute(new Runnable() {
+        Log.d(TAG, "Actively retrieving the tasks from the database");
+        LiveData<List<TaskEntry>> tasks = mDb.taskDao().loadAllTasks();
+        tasks.observe(this, new Observer<List<TaskEntry>>() {
             @Override
-            public void run() {
-                // Get a list of all the tasks from the database
-                // It should be final such that it is visible in the run method
-                // TODO(MZ): Simplify this operation after introducing LiveData
-                final List<TaskEntry> tasks = mDb.taskDao().loadAllTasks();
-                // Update the adapter with another Runnable on the UI thread
-                // since we cannot update the UI on the disk IO executor thread
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        mAdapter.setTasks(tasks);
-                    }
-                });
+            public void onChanged(@Nullable List<TaskEntry> taskEntries) {
+                // Update the adapter when changes in the database are observed
+                Log.d(TAG, "Receiving database update from LiveData");
+                mAdapter.setTasks(taskEntries);
             }
         });
     }
