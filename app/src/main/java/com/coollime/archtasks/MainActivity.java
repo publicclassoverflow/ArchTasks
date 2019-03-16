@@ -1,7 +1,7 @@
 package com.coollime.archtasks;
 
-import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -105,22 +105,22 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
         mDb = AppDatabase.getInstance(getApplicationContext());
 
         // Since LiveData is being used, there is no need to re-query the database in onResume()
-        retrieveTasks();
+        setupViewModel();
     }
 
     /**
-     * Get a list of all the tasks from the database
-     * LiveData runs outside of the main thread by default, so we can query directly
-     * The adapter gets updated by the TaskEntry object when changes in the database are observed
+     * Have the ViewModel to load the tasks from the database such that the LiveData objects
+     * can be cached in the ViewModel
      */
-    private void retrieveTasks() {
-        Log.d(TAG, "Actively retrieving the tasks from the database");
-        LiveData<List<TaskEntry>> tasks = mDb.taskDao().loadAllTasks();
-        tasks.observe(this, new Observer<List<TaskEntry>>() {
+    private void setupViewModel() {
+        // No LiveData object needed here since we are not retrieving any data here anymore
+        // Asks the ViewModel to do the job now by getting the providers of the MainActivity
+        MainViewModel viewModel = ViewModelProviders.of(this).get(MainViewModel.class);
+        viewModel.getTasks().observe(this, new Observer<List<TaskEntry>>() {
             @Override
             public void onChanged(@Nullable List<TaskEntry> taskEntries) {
                 // Update the adapter when changes in the database are observed
-                Log.d(TAG, "Receiving database update from LiveData");
+                Log.d(TAG, "Updating the list of tasks from LiveData in ViewModel");
                 mAdapter.setTasks(taskEntries);
             }
         });

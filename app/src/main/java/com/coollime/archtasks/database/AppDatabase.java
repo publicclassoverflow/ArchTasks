@@ -13,7 +13,7 @@ public abstract class AppDatabase extends RoomDatabase {
 
     private static final String LOG_TAG = AppDatabase.class.getSimpleName();
     private static final Object LOCK = new Object();
-    private static final String DATABASE_NAME = "todolist";
+    private static final String DATABASE_NAME = "archtasks";
     private static AppDatabase sInstance;
 
     // AppDatabase object will be a Singleton
