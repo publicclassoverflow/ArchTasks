@@ -72,6 +72,28 @@ public class AddTaskActivity extends AppCompatActivity {
             mButton.setText(R.string.update_button);
             if (mTaskId == DEFAULT_TASK_ID) {
                 // populate the UI
+                // Assign the value of EXTRA_TASK_ID in the intent to mTaskId
+                // Use DEFAULT_TASK_ID as the default
+                mTaskId = intent.getIntExtra(EXTRA_TASK_ID, DEFAULT_TASK_ID);
+                // Get the diskIO Executor from the instance of AppExecutors and
+                // call the diskIO execute method with a new Runnable and implement its run method
+                // to get the task with the specific task id
+                AppExecutors.getInstance().diskIO().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        final TaskEntry task = mDb.taskDao().loadTaskById(mTaskId);
+                        // Call the populateUI method with the retrieve tasks
+                        // Remember to wrap it in a call to runOnUiThread because we cannot
+                        // modify it in this thread
+                        // TODO(MZ): This will be prettify after introducing LiveData
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                populateUI(task);
+                            }
+                        });
+                    }
+                });
             }
         }
     }
@@ -104,7 +126,13 @@ public class AddTaskActivity extends AppCompatActivity {
      * @param task the taskEntry to populate the UI
      */
     private void populateUI(TaskEntry task) {
-
+        // Corner case: when the object is null
+        if (task == null) {
+            return;
+        }
+        // Set up the UI with the retrieved information
+        mEditText.setText(task.getDescription());
+        setPriorityInViews(task.getPriority());
     }
 
     /**
@@ -124,8 +152,15 @@ public class AddTaskActivity extends AppCompatActivity {
         AppExecutors.getInstance().diskIO().execute(new Runnable() {
             @Override
             public void run() {
-                // Use the taskDao to insert the taskEntry into the table
-                mDb.taskDao().insertTask(taskEntry);
+                if (mTaskId == DEFAULT_TASK_ID) {
+                    // 1. Insert the task only if mTaskId matches DEFAULT_TASK_ID
+                    // Use the taskDao to insert the taskEntry into the table
+                    mDb.taskDao().insertTask(taskEntry);
+                } else {
+                    // 2. Otherwise, set the task ID and update the task
+                    taskEntry.setId(mTaskId);
+                    mDb.taskDao().updateTask(taskEntry);
+                }
                 finish();
             }
         });
