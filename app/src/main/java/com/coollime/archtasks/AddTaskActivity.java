@@ -16,9 +16,13 @@
 
 package com.coollime.archtasks;
 
+import android.arch.lifecycle.LiveData;
+import android.arch.lifecycle.Observer;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -75,23 +79,19 @@ public class AddTaskActivity extends AppCompatActivity {
                 // Assign the value of EXTRA_TASK_ID in the intent to mTaskId
                 // Use DEFAULT_TASK_ID as the default
                 mTaskId = intent.getIntExtra(EXTRA_TASK_ID, DEFAULT_TASK_ID);
-                // Get the diskIO Executor from the instance of AppExecutors and
-                // call the diskIO execute method with a new Runnable and implement its run method
-                // to get the task with the specific task id
-                AppExecutors.getInstance().diskIO().execute(new Runnable() {
+                final LiveData<TaskEntry> task = mDb.taskDao().loadTaskById(mTaskId);
+                // Call the populateUI method with the retrieve tasks
+                // Because LiveData runs outside the main thread by default
+                // it can trigger the onChanged() method of the observer to notify the subject
+                // directly without any usages of things like executors
+                task.observe(this, new Observer<TaskEntry>() {
                     @Override
-                    public void run() {
-                        final TaskEntry task = mDb.taskDao().loadTaskById(mTaskId);
-                        // Call the populateUI method with the retrieve tasks
-                        // Remember to wrap it in a call to runOnUiThread because we cannot
-                        // modify it in this thread
-                        // TODO(MZ): This will be prettify after introducing LiveData
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                populateUI(task);
-                            }
-                        });
+                    public void onChanged(@Nullable TaskEntry taskEntry) {
+                        // There is no need to get updates when adding tasks
+                        // So, we can safely remove the observer before populating the UI
+                        task.removeObserver(this);
+                        Log.d(TAG, "Receiving database update from LiveData");
+                        populateUI(taskEntry);
                     }
                 });
             }
