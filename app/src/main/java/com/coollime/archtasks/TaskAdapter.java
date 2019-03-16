@@ -25,7 +25,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.example.android.todolist.database.TaskEntry;
+import com.coollime.archtasks.database.TaskEntry;
 
 import java.text.SimpleDateFormat;
 import java.util.List;
