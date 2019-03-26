@@ -38,7 +38,7 @@ import java.util.Locale;
 public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder> {
 
     // Constant for date format
-    private static final String DATE_FORMAT = "dd/MM/yyy";
+    private static final String DATE_FORMAT = "MM/dd/yyyy";
 
     // Member variable to handle item clicks
     final private ItemClickListener mItemClickListener;

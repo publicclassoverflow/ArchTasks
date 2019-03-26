@@ -84,4 +84,15 @@
         android:text="@string/add_button"
         android:textColor="@android:color/primary_text_dark" />
 
+    <!-- Add and show magic button -->
+    <Button
+        android:id="@+id/saveLaterButton"
+        style="@style/TextAppearance.AppCompat.Large"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@color/colorPrimaryDark"
+        android:text="@string/add_later_button"
+        android:textColor="@android:color/primary_text_dark" />
+
 </LinearLayout>

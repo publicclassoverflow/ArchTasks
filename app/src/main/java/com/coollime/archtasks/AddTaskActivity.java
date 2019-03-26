@@ -16,11 +16,11 @@
 
 package com.coollime.archtasks;
 
-import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -28,6 +28,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
+import android.widget.Toast;
 
 import com.coollime.archtasks.database.AppDatabase;
 import com.coollime.archtasks.database.TaskEntry;
@@ -53,6 +54,7 @@ public class AddTaskActivity extends AppCompatActivity {
     EditText mEditText;
     RadioGroup mRadioGroup;
     Button mButton;
+    Button mLater;
 
     private int mTaskId = DEFAULT_TASK_ID;
 
@@ -121,6 +123,14 @@ public class AddTaskActivity extends AppCompatActivity {
                 onSaveButtonClicked();
             }
         });
+
+        mLater = findViewById(R.id.saveLaterButton);
+        mLater.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onSaveLaterButtonClicked();
+            }
+        });
     }
 
     /**
@@ -165,6 +175,53 @@ public class AddTaskActivity extends AppCompatActivity {
                     mDb.taskDao().updateTask(taskEntry);
                 }
                 finish();
+            }
+        });
+    }
+
+
+    /**
+     * This method is called when the "Add in 3 seconds" save later button is clicked.
+     * It saves user input into the database with a 3-second delay such that the user
+     * can see the UI update completed by LiveData and ViewModel in the MainActivity
+     */
+    private void onSaveLaterButtonClicked() {
+        String description = mEditText.getText().toString();
+        int priority = getPriorityFromViews();
+        Date date = new Date();
+
+        // Create a TaskEntry object using the above information
+        // It should be final in order to be visible for the Runnable
+        final TaskEntry taskEntry = new TaskEntry(description, priority, date);
+        // Get the diskIO Executor from the instance of AppExecutors and
+        // call the diskIO execute method with a new Runnable and implement its run method
+        AppExecutors.getInstance().diskIO().execute(new Runnable() {
+            @Override
+            public void run() {
+                if (mTaskId == DEFAULT_TASK_ID) {
+                    // 1. Insert the task only if mTaskId matches DEFAULT_TASK_ID
+                    // Use the taskDao to insert the taskEntry into the table
+                    finish();
+                    // This is kind of a bad practice
+                    // But to make it easier to demonstrate, sleeping the thread might be
+                    // the easiest way
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    mDb.taskDao().insertTask(taskEntry);
+                } else {
+                    // 2. Otherwise, set the task ID and update the task
+                    finish();
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    taskEntry.setId(mTaskId);
+                    mDb.taskDao().updateTask(taskEntry);
+                }
             }
         });
     }
